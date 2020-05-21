@@ -1,0 +1,63 @@
+# Azure DevOps Labs Sample Application Pipeline
+trigger:
+  - none
+
+variables:
+  registryName : <<your registry name>>
+  subscriptionName: <<your subscription name>>
+  resourceGroupName : <<your resource group>>
+  appServiceName : <<your app service name>>
+  conatinerName: devopsvirtuallabs
+  registryLocation: South Africa North
+  registrySku: Basic
+  buildConfiguration: 'Release'
+  
+pool:
+  vmImage: 'ubuntu-latest'
+
+jobs:
+  - job:
+    displayName: build
+    steps:
+    #build teh application
+    - task: DotNetCoreCLI@2
+      displayName: Build
+      inputs:
+        command: 'build'
+        projects: '**/*.csproj'
+        arguments: '--configuration=$(buildConfiguration)'
+
+    #test the application
+    - task: DotNetCoreCLI@2
+      displayName: Test
+      inputs:
+        command: 'test'
+        projects: '**/*Test*.csproj'
+        arguments: '--configuration=$(buildConfiguration)'
+    #publish
+    - task: DotNetCoreCLI@2
+      displayName: Publish
+      inputs:
+        command: 'publish'
+        publishWebProjects: true
+        arguments: '--configuration=$(buildConfiguration) -o $(Build.ArtifactStagingDirectory)/publish'
+        zipAfterPublish: false
+        modifyOutputPath: false
+    #build container
+    - task: Docker@2
+      inputs:
+        repository: '$(registryName).azurecr.io/$(conatinerName)'
+        command: 'build'
+        Dockerfile: '**/Dockerfile'
+        buildContext: '$(Build.ArtifactStagingDirectory)/publish/'
+        tags: |
+          $(Build.BuildId)
+          latest
+    #push container
+    - task: Docker@1
+      displayName: 'Push an image'
+      inputs:
+        azureSubscriptionEndpoint: '$(subscriptionName)'
+        azureContainerRegistry: '$(registryName).azurecr.io'
+        imageName: '$(conatinerName)'
+        command: 'Push an image'
