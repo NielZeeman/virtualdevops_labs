@@ -2,21 +2,23 @@
 trigger:
   - none
 
-  variables:
+variables:
   registryName : <<your registry name>>
   subscriptionName: <<your subscription name>>
   resourceGroupName : <<your resource group>>
-  appServiceName : <<your app service name>>
-  containerName: devopsvirtuallabs
+  webAppName : <<your app service name>>
+  containerImageName: devopsvirtuallabs
   registryLocation: South Africa North
   registrySku: Basic
   buildConfiguration: 'Release'
-  
+
+
 pool:
   vmImage: 'ubuntu-latest'
+
 stages:
-  - stage: buildanddeploy 
-    displayName: Build and deploy
+  - stage: buildanddeploy
+    displayName: Build And Push to Registry
     jobs:
       - job:
         displayName: build
@@ -50,14 +52,14 @@ stages:
         #build container
         - task: Docker@2
           inputs:
-            repository: '$(registryName).azurecr.io/$(containerName)'
+            repository: '$(registryName).azurecr.io/$(containerImageName)'
             command: 'build'
             Dockerfile: '**/Dockerfile'
             buildContext: '$(Build.ArtifactStagingDirectory)/publish/'
             tags: |
               $(Build.BuildId)
               latest
-
+              
         #push container
         - task: AzureResourceGroupDeployment@2
           displayName: 'Azure Deployment:Ensure Azure Container Registry'
@@ -67,15 +69,22 @@ stages:
             location: '$(registryLocation)'
             csmFile: '$(System.DefaultWorkingDirectory)/**/container_registry.json'
             overrideParameters: '-registryName "$(registryName)" -registryLocation "$(registryLocation)" -registrySku "$(registrySku)"'
+            deploymentMode: 'Incremental'
 
         - task: Docker@1
           displayName: 'Push an image'
           inputs:
             azureSubscriptionEndpoint: '$(subscriptionName)'
             azureContainerRegistry: '$(registryName).azurecr.io'
-            imageName: '$(containerName)'
+            imageName: '$(containerImageName)'
             command: 'Push an image'
-  
+
+        - task: PublishBuildArtifacts@1
+          inputs:
+            PathtoPublish: '$(System.DefaultWorkingDirectory)/src/Templates'
+            ArtifactName: 'templates'
+            publishLocation: 'Container'
+
   - stage: release
     displayName: Release
     jobs:
@@ -90,14 +99,14 @@ stages:
           location: '$(registryLocation)'
           csmFile: '$(System.DefaultWorkingDirectory)/**/web_app_template.json'
           csmParametersFile: '$(System.DefaultWorkingDirectory)/**/web_app_parameters.json'
-          overrideParameters: '-dockerRegistryPassword "$(registryPassword)"'
+          overrideParameters: '-dockerRegistryPassword "$(registryPassword)" -name $(webAppName)'
 
       - task: AzureRmWebAppDeployment@4
         displayName: 'Azure App Service Deploy: Deploy Web App'
         inputs:
           azureSubscription: '$(subscriptionName)'
           appType: webAppContainer
-          WebAppName: $(appServiceName)
+          WebAppName: $(webAppName)
           DockerNamespace: $(registryName).azurecr.io
-          DockerRepository: $(containerName)
+          DockerRepository: $(containerImageName)
           DockerImageTag: '$(Build.BuildId)'
