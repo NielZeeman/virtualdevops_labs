@@ -12,7 +12,7 @@ variables:
   registrySku: Basic
   buildConfiguration: 'Release'
 
-
+#https://docs.microsoft.com/en-us/azure/devops/pipelines/agents/hosted?view=azure-devops&tabs=yaml
 pool:
   vmImage: 'ubuntu-latest'
 
