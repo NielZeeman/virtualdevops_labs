@@ -24,4 +24,7 @@ After this session you will be familiar with Azure DevOps, be able to quickly an
 3. [Release](./HOL/3.ReleaseTemplate.md)
 
 ### Tailpiece
-This lab will walk you through the steps from start to finish, but of you want a quick and easy overview, take a look at the [Azure DevOps Project](https://docs.microsoft.com/en-us/azure/devops-project/azure-devops-project-aspnet-core)
+This lab walks you through the steps from start to finish, but if you want a to find more information please take a look at the following additional resources:
+* [Azure Devops Hands On Labs](https://www.azuredevopslabs.com/
+)
+* [Azure DevOps Project](https://docs.microsoft.com/en-us/azure/devops-project/azure-devops-project-aspnet-core)
